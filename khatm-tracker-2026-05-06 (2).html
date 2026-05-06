@@ -1,0 +1,684 @@
+<html lang="fr"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Khatm Al-Qur'an — Suivi de Lecture</title>
+<style>
+  :root {
+    --font-titre: Georgia, 'Times New Roman', serif;
+    --font-corps: 'Segoe UI', Tahoma, Geneva, sans-serif;
+    --creme:     #fdf6e8;
+    --parchemin: #f5e9cc;
+    --sable:     #e8d5a3;
+    --ambre:     #c8922a;
+    --ambre-lt:  #e0a93a;
+    --vert:      #3a7d5a;
+    --vert-lt:   #4e9e73;
+    --brun:      #6b4c1e;
+    --text:      #3a2c10;
+    --muted:     #9a7d50;
+    --border:    #d9c18a;
+    --rouge:     #c0392b;
+    --rouge-lt:  #e74c3c;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: var(--font-corps); background: var(--creme); color: var(--text);
+    min-height: 100vh; padding-top: 152px; padding-bottom: 60px;
+    background-image: radial-gradient(ellipse at 10% 0%, #f0e0b0 0%, transparent 50%), radial-gradient(ellipse at 90% 100%, #e8d8a8 0%, transparent 50%);
+  }
+  #bandeau {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    background: linear-gradient(135deg, #7a4a10 0%, #a0691e 40%, #c8922a 100%);
+    box-shadow: 0 4px 20px #0003; padding: 10px 14px;
+  }
+  #bandeau h1 { font-family: var(--font-titre); color: var(--creme); font-size: 14px; letter-spacing: 3px; text-align: center; margin-bottom: 4px; font-weight: 600; text-transform: uppercase; }
+  #info-jours  { text-align: center; font-size: 10px; color: #ffe8b0; margin-bottom: 3px; letter-spacing: 1px; }
+  #info-moyenne{ text-align: center; font-size: 10px; color: #ffd080; margin-bottom: 7px; letter-spacing: 1px; font-style: italic; }
+  .stats-row { display: flex; gap: 6px; }
+  .stat-box  { flex: 1; background: rgba(255,255,255,0.15); border-radius: 10px; padding: 7px 4px; text-align: center; border: 1px solid rgba(255,255,255,0.25); }
+  .stat-label{ font-size: 7px; color: #f5e0b0; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 2px; }
+  .stat-num  { font-family: var(--font-titre); font-size: 20px; font-weight: 700; color: #fff; line-height: 1; }
+  .stat-num.done { color: #a8ffcc; }
+  .stat-total{ font-size: 8px; color: rgba(255,255,255,0.55); }
+  .prog-bar-bg  { background: rgba(0,0,0,0.2); border-radius: 4px; height: 4px; margin: 3px auto 2px; max-width: 64px; overflow: hidden; }
+  .prog-bar-fill{ height: 100%; border-radius: 4px; background: linear-gradient(90deg,#ffe08a,#fff3c0); transition: width .6s ease; }
+  .prog-bar-fill.done { background: #a8ffcc; }
+  .stat-pct  { font-size: 10px; color: #ffe08a; font-weight: 700; }
+  .stat-pct.done { color: #a8ffcc; }
+
+  .section { margin: 14px 14px 0; background: var(--parchemin); border: 1px solid var(--border); border-radius: 14px; padding: 14px 13px; box-shadow: 0 2px 16px rgba(100,60,0,0.08); }
+  .section-titre { font-family: var(--font-titre); font-size: 11px; color: var(--ambre); letter-spacing: 2px; text-align: center; text-transform: uppercase; margin-bottom: 12px; }
+
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin-bottom: 11px; }
+  .form-group label { display: block; font-size: 10px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 3px; }
+  .form-group input, .form-group select { width: 100%; background: var(--creme); border: 1px solid var(--border); color: var(--text); border-radius: 7px; padding: 8px 9px; font-size: 13px; font-family: var(--font-corps); outline: none; transition: border-color .2s; }
+  .form-group input:focus, .form-group select:focus { border-color: var(--ambre); box-shadow: 0 0 0 2px rgba(200,146,42,0.15); }
+
+  .btn { width: 100%; padding: 11px; border: none; border-radius: 8px; font-size: 13px; font-family: var(--font-titre); font-weight: 700; letter-spacing: 1px; cursor: pointer; transition: opacity .2s; }
+  .btn:hover { opacity: .87; }
+  .btn-vert  { background: linear-gradient(90deg, var(--vert), var(--vert-lt)); color: #fff; }
+  .btn-ambre { background: linear-gradient(90deg, #a06010, var(--ambre)); color: #fff; }
+  .btn-rouge { background: linear-gradient(90deg, var(--rouge), var(--rouge-lt)); color: #fff; }
+  .btn-ghost { background: transparent; border: 1px solid var(--border) !important; color: var(--muted); font-family: var(--font-corps); font-size: 12px; font-weight: 400; display: none; }
+  .btn + .btn { margin-top: 7px; }
+
+  /* Bouton sauvegarde — mis en valeur */
+  #btn-sauvegarder {
+    display: block; width: calc(100% - 28px); margin: 12px 14px 0;
+    padding: 13px; border: none; border-radius: 10px; cursor: pointer;
+    background: linear-gradient(90deg, #3a7d5a, #4e9e73);
+    color: #fff; font-family: var(--font-titre); font-size: 15px;
+    font-weight: 700; letter-spacing: 1px; text-align: center;
+    box-shadow: 0 4px 16px rgba(58,125,90,0.35); transition: opacity .2s;
+  }
+  #btn-sauvegarder:hover { opacity: .88; }
+
+  .btn-row { display: flex; gap: 7px; margin: 10px 14px 0; }
+  .btn-row .btn { flex: 1; padding: 9px 4px; font-size: 11px; }
+
+  #tableau { border-radius: 12px; overflow: hidden; border: 1px solid var(--border); box-shadow: 0 2px 12px rgba(100,60,0,0.08); }
+  .row-head { display: flex; background: linear-gradient(90deg,#c8922a,#e0a93a); padding: 8px 10px; gap: 4px; }
+  .row-head span { flex: 1; font-size: 9px; color: #fff; font-weight: 700; letter-spacing: 1px; text-align: center; text-transform: uppercase; }
+  .row-head .col-act { flex: 0.55; }
+  .row-data { display: flex; align-items: center; padding: 9px 10px; gap: 4px; border-bottom: 1px solid var(--sable); transition: background .15s; }
+  .row-data:nth-child(odd)  { background: var(--parchemin); }
+  .row-data:nth-child(even) { background: var(--creme); }
+  .row-data.last-row { background: #e8f5ed !important; border-left: 3px solid var(--vert-lt); }
+  .col { flex: 1; font-size: 12px; text-align: center; }
+  .col.jour   { color: var(--ambre); font-weight: 700; font-family: var(--font-titre); font-size: 13px; }
+  .col.juzz   { color: var(--brun); font-weight: 700; }
+  .col.srt    { color: var(--text); font-size: 10px; }
+  .col.verset { color: var(--vert); font-weight: 700; }
+  .col.act    { flex: 0.55; display: flex; gap: 3px; justify-content: center; }
+  .btn-edit, .btn-del { border: none; border-radius: 5px; width: 26px; height: 26px; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .btn-edit { background: #e8d5a3; color: var(--brun); }
+  .btn-del  { background: #fde8e8; color: var(--rouge); }
+
+  #vide-msg { text-align: center; color: var(--muted); padding: 36px 0; font-size: 14px; }
+  #vide-msg .vi { font-size: 30px; margin-bottom: 8px; }
+  #resume { text-align: center; color: var(--muted); font-size: 11px; margin-top: 9px; }
+
+  #khatm-msg { display: none; text-align: center; color: var(--vert); font-family: var(--font-titre); font-size: 15px; margin: 10px 14px 0; padding: 12px; background: #e8f5ed; border-radius: 10px; border: 1px solid var(--vert-lt); line-height: 1.6; }
+
+  /* Bouton Fin du Juzz */
+  #btn-fin-juzz {
+    width: 100%; margin-bottom: 11px; padding: 11px;
+    border: 2px solid var(--ambre); border-radius: 8px; cursor: pointer;
+    background: linear-gradient(90deg, #fff8e8, #fdf0cc);
+    color: var(--brun); font-family: var(--font-titre); font-size: 13px;
+    font-weight: 700; letter-spacing: 1px; text-align: center;
+    transition: all .2s;
+  }
+  #btn-fin-juzz:hover { background: var(--sable); }
+  #fin-juzz-info {
+    text-align: center; font-size: 11px; color: var(--vert);
+    margin-bottom: 9px; font-style: italic; min-height: 16px;
+  }
+
+  /* Bloc info sauvegarde */
+  #save-bloc { margin: 10px 14px 0; background: #fff8e8; border: 1px solid var(--sable); border-radius: 10px; padding: 10px 13px; font-size: 11px; color: var(--brun); line-height: 1.7; }
+  #save-bloc strong { color: var(--ambre); display: block; margin-bottom: 3px; }
+
+  .archive-item { background: var(--creme); border: 1px solid var(--border); border-radius: 10px; padding: 11px 13px; margin-bottom: 8px; }
+  .archive-num  { font-size: 10px; color: var(--ambre); font-weight: 700; letter-spacing: 1px; margin-bottom: 4px; }
+  .archive-line { font-size: 12px; color: var(--text); margin-bottom: 2px; }
+  .archive-line span { color: var(--brun); font-weight: 600; }
+  .archive-duree { font-size: 11px; color: var(--vert); margin-top: 4px; font-style: italic; }
+  #archives-vide { text-align: center; color: var(--muted); font-size: 13px; padding: 16px 0; }
+
+  #toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #3a2c10; color: #ffe8b0; padding: 10px 20px; border-radius: 24px; font-size: 12px; z-index: 999; opacity: 0; transition: opacity .3s; pointer-events: none; box-shadow: 0 4px 16px #0004; max-width: 88vw; text-align: center; }
+  #toast.show { opacity: 1; }
+  .ornement { text-align: center; color: var(--sable); font-size: 18px; letter-spacing: 8px; margin-top: 36px; }
+</style>
+</head>
+<body>
+
+<!-- BANDEAU -->
+<div id="bandeau">
+  <h1>✦ Suivi Khatm Al-Qur'an ✦</h1>
+  <div style="text-align:center;font-size:10px;color:rgba(255,255,255,0.5);margin-top:-2px;margin-bottom:2px;letter-spacing:2px;">rev.09</div>
+  <div id="info-jours">📅 Lecture en cours depuis 20 jours — début le 17/04/2026</div>
+  <div id="info-moyenne">📊 Moy. 66.3 versets/jour — fin estimée dans 74 jours</div>
+  <div class="stats-row">
+    <div class="stat-box">
+      <div class="stat-label">Juzz restants</div>
+      <div class="stat-num" id="s-juzz">20</div>
+      <div class="stat-total">/30</div>
+      <div class="prog-bar-bg"><div class="prog-bar-fill" id="p-juzz" style="width: 33%;"></div></div>
+      <div class="stat-pct" id="pct-juzz">33%</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-label">Sourates restantes</div>
+      <div class="stat-num" id="s-srt">105</div>
+      <div class="stat-total">/114</div>
+      <div class="prog-bar-bg"><div class="prog-bar-fill" id="p-srt" style="width: 8%;"></div></div>
+      <div class="stat-pct" id="pct-srt">8%</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-label">Versets restants</div>
+      <div class="stat-num" id="s-vrs">4909</div>
+      <div class="stat-total">/6236</div>
+      <div class="prog-bar-bg"><div class="prog-bar-fill" id="p-vrs" style="width: 21%;"></div></div>
+      <div class="stat-pct" id="pct-vrs">21%</div>
+    </div>
+  </div>
+</div>
+
+<!-- FORMULAIRE -->
+<div class="section" id="formulaire">
+  <div class="section-titre" id="form-titre">＋ Nouvelle Session</div>
+
+  <!-- Bouton rapide Fin du Juzz -->
+  <button id="btn-fin-juzz" onclick="finDuJuzz()">✅ Fin du Juzz — Remplissage automatique</button>
+  <div id="fin-juzz-info">ℹ️ Fin Juzz 10 → At-Tawba V.92</div>
+
+  <div class="form-grid">
+    <div class="form-group"><label>📅 Date</label><input type="date" id="f-date"></div>
+    <div class="form-group"><label>📖 Juzz N°</label><select id="f-juzz" onchange="majFinJuzzInfo()"><option value="1">Juzz 1</option><option value="2">Juzz 2</option><option value="3">Juzz 3</option><option value="4">Juzz 4</option><option value="5">Juzz 5</option><option value="6">Juzz 6</option><option value="7">Juzz 7</option><option value="8">Juzz 8</option><option value="9">Juzz 9</option><option value="10">Juzz 10</option><option value="11">Juzz 11</option><option value="12">Juzz 12</option><option value="13">Juzz 13</option><option value="14">Juzz 14</option><option value="15">Juzz 15</option><option value="16">Juzz 16</option><option value="17">Juzz 17</option><option value="18">Juzz 18</option><option value="19">Juzz 19</option><option value="20">Juzz 20</option><option value="21">Juzz 21</option><option value="22">Juzz 22</option><option value="23">Juzz 23</option><option value="24">Juzz 24</option><option value="25">Juzz 25</option><option value="26">Juzz 26</option><option value="27">Juzz 27</option><option value="28">Juzz 28</option><option value="29">Juzz 29</option><option value="30">Juzz 30</option></select></div>
+    <div class="form-group"><label>📜 Sourate N°</label><select id="f-sourate"><option value="1">1. Al-Fatiha</option><option value="2">2. Al-Baqara</option><option value="3">3. Ali 'Imran</option><option value="4">4. An-Nisa</option><option value="5">5. Al-Ma'ida</option><option value="6">6. Al-An'am</option><option value="7">7. Al-A'raf</option><option value="8">8. Al-Anfal</option><option value="9">9. At-Tawba</option><option value="10">10. Yunus</option><option value="11">11. Hud</option><option value="12">12. Yusuf</option><option value="13">13. Ar-Ra'd</option><option value="14">14. Ibrahim</option><option value="15">15. Al-Hijr</option><option value="16">16. An-Nahl</option><option value="17">17. Al-Isra</option><option value="18">18. Al-Kahf</option><option value="19">19. Maryam</option><option value="20">20. Ta-Ha</option><option value="21">21. Al-Anbiya</option><option value="22">22. Al-Hajj</option><option value="23">23. Al-Mu'minun</option><option value="24">24. An-Nur</option><option value="25">25. Al-Furqan</option><option value="26">26. Ash-Shu'ara</option><option value="27">27. An-Naml</option><option value="28">28. Al-Qasas</option><option value="29">29. Al-'Ankabut</option><option value="30">30. Ar-Rum</option><option value="31">31. Luqman</option><option value="32">32. As-Sajda</option><option value="33">33. Al-Ahzab</option><option value="34">34. Saba'</option><option value="35">35. Fatir</option><option value="36">36. Ya-Sin</option><option value="37">37. As-Saffat</option><option value="38">38. Sad</option><option value="39">39. Az-Zumar</option><option value="40">40. Ghafir</option><option value="41">41. Fussilat</option><option value="42">42. Ash-Shura</option><option value="43">43. Az-Zukhruf</option><option value="44">44. Ad-Dukhan</option><option value="45">45. Al-Jathiya</option><option value="46">46. Al-Ahqaf</option><option value="47">47. Muhammad</option><option value="48">48. Al-Fath</option><option value="49">49. Al-Hujurat</option><option value="50">50. Qaf</option><option value="51">51. Adh-Dhariyat</option><option value="52">52. At-Tur</option><option value="53">53. An-Najm</option><option value="54">54. Al-Qamar</option><option value="55">55. Ar-Rahman</option><option value="56">56. Al-Waqi'a</option><option value="57">57. Al-Hadid</option><option value="58">58. Al-Mujadila</option><option value="59">59. Al-Hashr</option><option value="60">60. Al-Mumtahana</option><option value="61">61. As-Saf</option><option value="62">62. Al-Jumu'a</option><option value="63">63. Al-Munafiqun</option><option value="64">64. At-Taghabun</option><option value="65">65. At-Talaq</option><option value="66">66. At-Tahrim</option><option value="67">67. Al-Mulk</option><option value="68">68. Al-Qalam</option><option value="69">69. Al-Haqqa</option><option value="70">70. Al-Ma'arij</option><option value="71">71. Nuh</option><option value="72">72. Al-Jinn</option><option value="73">73. Al-Muzzammil</option><option value="74">74. Al-Muddaththir</option><option value="75">75. Al-Qiyama</option><option value="76">76. Al-Insan</option><option value="77">77. Al-Mursalat</option><option value="78">78. An-Naba</option><option value="79">79. An-Nazi'at</option><option value="80">80. 'Abasa</option><option value="81">81. At-Takwir</option><option value="82">82. Al-Infitar</option><option value="83">83. Al-Mutaffifin</option><option value="84">84. Al-Inshiqaq</option><option value="85">85. Al-Buruj</option><option value="86">86. At-Tariq</option><option value="87">87. Al-A'la</option><option value="88">88. Al-Ghashiya</option><option value="89">89. Al-Fajr</option><option value="90">90. Al-Balad</option><option value="91">91. Ash-Shams</option><option value="92">92. Al-Layl</option><option value="93">93. Ad-Duha</option><option value="94">94. Ash-Sharh</option><option value="95">95. At-Tin</option><option value="96">96. Al-'Alaq</option><option value="97">97. Al-Qadr</option><option value="98">98. Al-Bayyina</option><option value="99">99. Az-Zalzala</option><option value="100">100. Al-'Adiyat</option><option value="101">101. Al-Qari'a</option><option value="102">102. At-Takathur</option><option value="103">103. Al-'Asr</option><option value="104">104. Al-Humaza</option><option value="105">105. Al-Fil</option><option value="106">106. Quraysh</option><option value="107">107. Al-Ma'un</option><option value="108">108. Al-Kawthar</option><option value="109">109. Al-Kafirun</option><option value="110">110. An-Nasr</option><option value="111">111. Al-Masad</option><option value="112">112. Al-Ikhlas</option><option value="113">113. Al-Falaq</option><option value="114">114. An-Nas</option></select></div>
+    <div class="form-group"><label>🔢 Verset N°</label><select id="f-verset"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option><option value="24">24</option><option value="25">25</option><option value="26">26</option><option value="27">27</option><option value="28">28</option><option value="29">29</option><option value="30">30</option><option value="31">31</option><option value="32">32</option><option value="33">33</option><option value="34">34</option><option value="35">35</option><option value="36">36</option><option value="37">37</option><option value="38">38</option><option value="39">39</option><option value="40">40</option><option value="41">41</option><option value="42">42</option><option value="43">43</option><option value="44">44</option><option value="45">45</option><option value="46">46</option><option value="47">47</option><option value="48">48</option><option value="49">49</option><option value="50">50</option><option value="51">51</option><option value="52">52</option><option value="53">53</option><option value="54">54</option><option value="55">55</option><option value="56">56</option><option value="57">57</option><option value="58">58</option><option value="59">59</option><option value="60">60</option><option value="61">61</option><option value="62">62</option><option value="63">63</option><option value="64">64</option><option value="65">65</option><option value="66">66</option><option value="67">67</option><option value="68">68</option><option value="69">69</option><option value="70">70</option><option value="71">71</option><option value="72">72</option><option value="73">73</option><option value="74">74</option><option value="75">75</option><option value="76">76</option><option value="77">77</option><option value="78">78</option><option value="79">79</option><option value="80">80</option><option value="81">81</option><option value="82">82</option><option value="83">83</option><option value="84">84</option><option value="85">85</option><option value="86">86</option><option value="87">87</option><option value="88">88</option><option value="89">89</option><option value="90">90</option><option value="91">91</option><option value="92">92</option><option value="93">93</option><option value="94">94</option><option value="95">95</option><option value="96">96</option><option value="97">97</option><option value="98">98</option><option value="99">99</option><option value="100">100</option><option value="101">101</option><option value="102">102</option><option value="103">103</option><option value="104">104</option><option value="105">105</option><option value="106">106</option><option value="107">107</option><option value="108">108</option><option value="109">109</option><option value="110">110</option><option value="111">111</option><option value="112">112</option><option value="113">113</option><option value="114">114</option><option value="115">115</option><option value="116">116</option><option value="117">117</option><option value="118">118</option><option value="119">119</option><option value="120">120</option><option value="121">121</option><option value="122">122</option><option value="123">123</option><option value="124">124</option><option value="125">125</option><option value="126">126</option><option value="127">127</option><option value="128">128</option><option value="129">129</option></select></div>
+  </div>
+  <button class="btn btn-vert" id="btn-ajouter" onclick="saveSession()">＋ Ajouter la session</button>
+  <button class="btn btn-ghost" id="btn-annuler" onclick="cancelEdit()">Annuler</button>
+</div>
+
+<!-- BOUTON SAUVEGARDE PRINCIPAL -->
+<button id="btn-sauvegarder" onclick="sauvegarderFichier()">
+  💾 Sauvegarder — Télécharger le fichier mis à jour
+</button>
+
+<!-- BLOC INFO -->
+<div id="save-bloc">
+  <strong>💡 Comment utiliser la sauvegarde</strong>
+  Après chaque session : appuyez <b>💾 Sauvegarder</b> → un nouveau fichier HTML se télécharge.<br>
+  Ouvrez ce fichier depuis vos Téléchargements : toutes vos données sont dedans, sans internet, sans Claude.
+</div>
+
+<!-- ACTIONS SECONDAIRES -->
+<div class="btn-row">
+  <button class="btn btn-ambre" onclick="partagerResume()">📤 Partager</button>
+  <button class="btn btn-rouge" id="btn-reset" style="display:none" onclick="demanderReset()">🔄 Nouveau Khatm</button>
+</div>
+
+<!-- KHATM ACCOMPLI -->
+<div id="khatm-msg" style="display: none;"></div>
+
+<!-- TABLEAU -->
+<div class="section" style="padding-top:12px;">
+  <div class="section-titre">✦ Historique des Sessions ✦</div>
+  <div id="vide-msg" style="display: none;"><div class="vi">📖</div>Commencez votre suivi en ajoutant votre première session</div>
+  <div id="tableau" style="display: block;">
+    <div class="row-head">
+      <span>Jour</span><span>Date</span><span>Juzz</span><span>Sourate</span><span>Verset</span><span class="col-act"></span>
+    </div>
+    <div id="tbody"><div class="row-data">
+      <span class="col jour">J1</span>
+      <span class="col">04/17</span>
+      <span class="col juzz">1</span>
+      <span class="col srt"><small style="color:#9a7d50">2.</small> Al-Baqara</span>
+      <span class="col verset">141</span>
+      <span class="col act">
+        <button class="btn-edit" onclick="startEdit(1778055031301)">✎</button>
+        <button class="btn-del" onclick="deleteSession(1778055031301)">✕</button>
+      </span></div><div class="row-data">
+      <span class="col jour">J2</span>
+      <span class="col">04/21</span>
+      <span class="col juzz">2</span>
+      <span class="col srt"><small style="color:#9a7d50">2.</small> Al-Baqara</span>
+      <span class="col verset">252</span>
+      <span class="col act">
+        <button class="btn-edit" onclick="startEdit(1778055062205)">✎</button>
+        <button class="btn-del" onclick="deleteSession(1778055062205)">✕</button>
+      </span></div><div class="row-data">
+      <span class="col jour">J3</span>
+      <span class="col">04/23</span>
+      <span class="col juzz">3</span>
+      <span class="col srt"><small style="color:#9a7d50">3.</small> Ali 'Imra…</span>
+      <span class="col verset">92</span>
+      <span class="col act">
+        <button class="btn-edit" onclick="startEdit(1778055137079)">✎</button>
+        <button class="btn-del" onclick="deleteSession(1778055137079)">✕</button>
+      </span></div><div class="row-data">
+      <span class="col jour">J4</span>
+      <span class="col">04/24</span>
+      <span class="col juzz">4</span>
+      <span class="col srt"><small style="color:#9a7d50">4.</small> An-Nisa</span>
+      <span class="col verset">23</span>
+      <span class="col act">
+        <button class="btn-edit" onclick="startEdit(1778055176330)">✎</button>
+        <button class="btn-del" onclick="deleteSession(1778055176330)">✕</button>
+      </span></div><div class="row-data">
+      <span class="col jour">J5</span>
+      <span class="col">04/28</span>
+      <span class="col juzz">6</span>
+      <span class="col srt"><small style="color:#9a7d50">5.</small> Al-Ma'ida</span>
+      <span class="col verset">81</span>
+      <span class="col act">
+        <button class="btn-edit" onclick="startEdit(1778055234158)">✎</button>
+        <button class="btn-del" onclick="deleteSession(1778055234158)">✕</button>
+      </span></div><div class="row-data">
+      <span class="col jour">J6</span>
+      <span class="col">04/30</span>
+      <span class="col juzz">7</span>
+      <span class="col srt"><small style="color:#9a7d50">6.</small> Al-An'am</span>
+      <span class="col verset">110</span>
+      <span class="col act">
+        <button class="btn-edit" onclick="startEdit(1778055274496)">✎</button>
+        <button class="btn-del" onclick="deleteSession(1778055274496)">✕</button>
+      </span></div><div class="row-data">
+      <span class="col jour">J7</span>
+      <span class="col">05/01</span>
+      <span class="col juzz">8</span>
+      <span class="col srt"><small style="color:#9a7d50">7.</small> Al-A'raf</span>
+      <span class="col verset">87</span>
+      <span class="col act">
+        <button class="btn-edit" onclick="startEdit(1778055312509)">✎</button>
+        <button class="btn-del" onclick="deleteSession(1778055312509)">✕</button>
+      </span></div><div class="row-data">
+      <span class="col jour">J8</span>
+      <span class="col">05/02</span>
+      <span class="col juzz">9</span>
+      <span class="col srt"><small style="color:#9a7d50">8.</small> Al-Anfal</span>
+      <span class="col verset">40</span>
+      <span class="col act">
+        <button class="btn-edit" onclick="startEdit(1778055356002)">✎</button>
+        <button class="btn-del" onclick="deleteSession(1778055356002)">✕</button>
+      </span></div><div class="row-data last-row">
+      <span class="col jour">J9</span>
+      <span class="col">05/06</span>
+      <span class="col juzz">10</span>
+      <span class="col srt"><small style="color:#9a7d50">9.</small> At-Tawba</span>
+      <span class="col verset">92</span>
+      <span class="col act">
+        <button class="btn-edit" onclick="startEdit(1778055398769)">✎</button>
+        <button class="btn-del" onclick="deleteSession(1778055398769)">✕</button>
+      </span></div></div>
+  </div>
+  <div id="resume">9 sessions enregistrées</div>
+</div>
+
+<!-- ARCHIVES -->
+<div class="section">
+  <div class="section-titre">📚 Archives des Khatm précédents</div>
+  <div id="archives-vide" style="display: block;">Aucun Khatm archivé pour le moment.</div>
+  <div id="archives-liste"></div>
+</div>
+
+<div class="ornement">✦ ✦ ✦</div>
+<div id="toast" class="">✅ Session ajoutée — pensez à 💾 Sauvegarder !</div>
+
+<script id="data-script" type="application/json">
+{"sessions":[{"id":1778055031301,"date":"2026-04-17","juzz":1,"sourate":2,"verset":141},{"id":1778055062205,"date":"2026-04-21","juzz":2,"sourate":2,"verset":252},{"id":1778055137079,"date":"2026-04-23","juzz":3,"sourate":3,"verset":92},{"id":1778055176330,"date":"2026-04-24","juzz":4,"sourate":4,"verset":23},{"id":1778055234158,"date":"2026-04-28","juzz":6,"sourate":5,"verset":81},{"id":1778055274496,"date":"2026-04-30","juzz":7,"sourate":6,"verset":110},{"id":1778055312509,"date":"2026-05-01","juzz":8,"sourate":7,"verset":87},{"id":1778055356002,"date":"2026-05-02","juzz":9,"sourate":8,"verset":40},{"id":1778055398769,"date":"2026-05-06","juzz":10,"sourate":9,"verset":92}],"archives":[]}
+</script>
+
+<script>
+// ══ DONNÉES CORAN ══
+const SOURATES=[
+  [1,"الفاتحة","Al-Fatiha",7,1],[2,"البقرة","Al-Baqara",286,1],
+  [3,"آل عمران","Ali 'Imran",200,3],[4,"النساء","An-Nisa",176,4],
+  [5,"المائدة","Al-Ma'ida",120,6],[6,"الأنعام","Al-An'am",165,7],
+  [7,"الأعراف","Al-A'raf",206,8],[8,"الأنفال","Al-Anfal",75,9],
+  [9,"التوبة","At-Tawba",129,10],[10,"يونس","Yunus",109,11],
+  [11,"هود","Hud",123,11],[12,"يوسف","Yusuf",111,12],
+  [13,"الرعد","Ar-Ra'd",43,13],[14,"إبراهيم","Ibrahim",52,13],
+  [15,"الحجر","Al-Hijr",99,14],[16,"النحل","An-Nahl",128,14],
+  [17,"الإسراء","Al-Isra",111,15],[18,"الكهف","Al-Kahf",110,15],
+  [19,"مريم","Maryam",98,16],[20,"طه","Ta-Ha",135,16],
+  [21,"الأنبياء","Al-Anbiya",112,17],[22,"الحج","Al-Hajj",78,17],
+  [23,"المؤمنون","Al-Mu'minun",118,18],[24,"النور","An-Nur",64,18],
+  [25,"الفرقان","Al-Furqan",77,18],[26,"الشعراء","Ash-Shu'ara",227,19],
+  [27,"النمل","An-Naml",93,19],[28,"القصص","Al-Qasas",88,20],
+  [29,"العنكبوت","Al-'Ankabut",69,20],[30,"الروم","Ar-Rum",60,21],
+  [31,"لقمان","Luqman",34,21],[32,"السجدة","As-Sajda",30,21],
+  [33,"الأحزاب","Al-Ahzab",73,21],[34,"سبأ","Saba'",54,22],
+  [35,"فاطر","Fatir",45,22],[36,"يس","Ya-Sin",83,22],
+  [37,"الصافات","As-Saffat",182,23],[38,"ص","Sad",88,23],
+  [39,"الزمر","Az-Zumar",75,23],[40,"غافر","Ghafir",85,24],
+  [41,"فصلت","Fussilat",54,24],[42,"الشورى","Ash-Shura",53,25],
+  [43,"الزخرف","Az-Zukhruf",89,25],[44,"الدخان","Ad-Dukhan",59,25],
+  [45,"الجاثية","Al-Jathiya",37,25],[46,"الأحقاف","Al-Ahqaf",35,26],
+  [47,"محمد","Muhammad",38,26],[48,"الفتح","Al-Fath",29,26],
+  [49,"الحجرات","Al-Hujurat",18,26],[50,"ق","Qaf",45,26],
+  [51,"الذاريات","Adh-Dhariyat",60,26],[52,"الطور","At-Tur",49,27],
+  [53,"النجم","An-Najm",62,27],[54,"القمر","Al-Qamar",55,27],
+  [55,"الرحمن","Ar-Rahman",78,27],[56,"الواقعة","Al-Waqi'a",96,27],
+  [57,"الحديد","Al-Hadid",29,27],[58,"المجادلة","Al-Mujadila",22,28],
+  [59,"الحشر","Al-Hashr",24,28],[60,"الممتحنة","Al-Mumtahana",13,28],
+  [61,"الصف","As-Saf",14,28],[62,"الجمعة","Al-Jumu'a",11,28],
+  [63,"المنافقون","Al-Munafiqun",11,28],[64,"التغابن","At-Taghabun",18,28],
+  [65,"الطلاق","At-Talaq",12,28],[66,"التحريم","At-Tahrim",12,28],
+  [67,"الملك","Al-Mulk",30,29],[68,"القلم","Al-Qalam",52,29],
+  [69,"الحاقة","Al-Haqqa",52,29],[70,"المعارج","Al-Ma'arij",44,29],
+  [71,"نوح","Nuh",28,29],[72,"الجن","Al-Jinn",28,29],
+  [73,"المزمل","Al-Muzzammil",20,29],[74,"المدثر","Al-Muddaththir",56,29],
+  [75,"القيامة","Al-Qiyama",40,29],[76,"الإنسان","Al-Insan",31,29],
+  [77,"المرسلات","Al-Mursalat",50,29],[78,"النبأ","An-Naba",40,30],
+  [79,"النازعات","An-Nazi'at",46,30],[80,"عبس","'Abasa",42,30],
+  [81,"التكوير","At-Takwir",29,30],[82,"الانفطار","Al-Infitar",19,30],
+  [83,"المطففين","Al-Mutaffifin",36,30],[84,"الانشقاق","Al-Inshiqaq",25,30],
+  [85,"البروج","Al-Buruj",22,30],[86,"الطارق","At-Tariq",17,30],
+  [87,"الأعلى","Al-A'la",19,30],[88,"الغاشية","Al-Ghashiya",26,30],
+  [89,"الفجر","Al-Fajr",30,30],[90,"البلد","Al-Balad",20,30],
+  [91,"الشمس","Ash-Shams",15,30],[92,"الليل","Al-Layl",21,30],
+  [93,"الضحى","Ad-Duha",11,30],[94,"الشرح","Ash-Sharh",8,30],
+  [95,"التين","At-Tin",8,30],[96,"العلق","Al-'Alaq",19,30],
+  [97,"القدر","Al-Qadr",5,30],[98,"البينة","Al-Bayyina",8,30],
+  [99,"الزلزلة","Az-Zalzala",8,30],[100,"العاديات","Al-'Adiyat",11,30],
+  [101,"القارعة","Al-Qari'a",11,30],[102,"التكاثر","At-Takathur",8,30],
+  [103,"العصر","Al-'Asr",3,30],[104,"الهمزة","Al-Humaza",9,30],
+  [105,"الفيل","Al-Fil",5,30],[106,"قريش","Quraysh",4,30],
+  [107,"الماعون","Al-Ma'un",7,30],[108,"الكوثر","Al-Kawthar",3,30],
+  [109,"الكافرون","Al-Kafirun",6,30],[110,"النصر","An-Nasr",3,30],
+  [111,"المسد","Al-Masad",5,30],[112,"الإخلاص","Al-Ikhlas",4,30],
+  [113,"الفلق","Al-Falaq",5,30],[114,"الناس","An-Nas",6,30]
+];
+const TOTAL_VRS = SOURATES.reduce((s,r)=>s+r[3],0);
+
+// ══ FIN DE CHAQUE JUZZ : [sourate, verset_final] ══
+// Source : découpage officiel Hafs An Asim
+const FIN_JUZZ = [
+  null,          // index 0 non utilisé
+  [2, 141],      // Juzz 1  → Al-Baqara V.141
+  [2, 252],      // Juzz 2  → Al-Baqara V.252
+  [3, 92],       // Juzz 3  → Ali 'Imran V.92
+  [4, 23],       // Juzz 4  → An-Nisa V.23
+  [4, 147],      // Juzz 5  → An-Nisa V.147
+  [5, 81],       // Juzz 6  → Al-Ma'ida V.81
+  [6, 110],      // Juzz 7  → Al-An'am V.110
+  [7, 87],       // Juzz 8  → Al-A'raf V.87
+  [8, 40],       // Juzz 9  → Al-Anfal V.40
+  [9, 92],       // Juzz 10 → At-Tawba V.92
+  [11, 5],       // Juzz 11 → Hud V.5
+  [12, 52],      // Juzz 12 → Yusuf V.52
+  [14, 52],      // Juzz 13 → Ibrahim V.52
+  [16, 128],     // Juzz 14 → An-Nahl V.128
+  [18, 74],      // Juzz 15 → Al-Kahf V.74
+  [20, 135],     // Juzz 16 → Ta-Ha V.135
+  [22, 78],      // Juzz 17 → Al-Hajj V.78
+  [25, 20],      // Juzz 18 → Al-Furqan V.20
+  [27, 55],      // Juzz 19 → An-Naml V.55
+  [29, 45],      // Juzz 20 → Al-'Ankabut V.45
+  [33, 30],      // Juzz 21 → Al-Ahzab V.30
+  [36, 27],      // Juzz 22 → Ya-Sin V.27
+  [39, 31],      // Juzz 23 → Az-Zumar V.31
+  [41, 46],      // Juzz 24 → Fussilat V.46
+  [45, 37],      // Juzz 25 → Al-Jathiya V.37
+  [51, 30],      // Juzz 26 → Adh-Dhariyat V.30
+  [57, 29],      // Juzz 27 → Al-Hadid V.29
+  [66, 12],      // Juzz 28 → At-Tahrim V.12
+  [77, 50],      // Juzz 29 → Al-Mursalat V.50
+  [114, 6],      // Juzz 30 → An-Nas V.6
+];
+
+// Remplissage automatique Fin du Juzz
+function finDuJuzz() {
+  const juzz = parseInt(document.getElementById('f-juzz').value);
+  const fin  = FIN_JUZZ[juzz];
+  if(!fin) return;
+  // Remplir sourate et verset
+  document.getElementById('f-sourate').value = fin[0];
+  majVersets();
+  document.getElementById('f-verset').value = fin[1];
+  // Feedback visuel
+  const si = SI(fin[0]);
+  document.getElementById('fin-juzz-info').textContent =
+    `✅ Juzz ${juzz} → ${si?si[2]:'—'} V.${fin[1]} (dernier verset)`;
+  // Lancer ajout direct
+  saveSession();
+}
+
+// Afficher l'info fin de juzz quand on change le sélecteur
+function majFinJuzzInfo() {
+  const juzz = parseInt(document.getElementById('f-juzz').value);
+  const fin  = FIN_JUZZ[juzz];
+  if(!fin) return;
+  const si = SI(fin[0]);
+  document.getElementById('fin-juzz-info').textContent =
+    `ℹ️ Fin Juzz ${juzz} → ${si?si[2]:'—'} V.${fin[1]}`;
+}
+
+// ══ UTILITAIRES ══
+const SI   = n => SOURATES.find(s=>s[0]===n);
+const fmt  = d => { if(!d)return'—'; const[y,m,j]=d.split('-'); return`${j}/${m}/${y}`; };
+const diffJ= (a,b) => Math.round(Math.abs((new Date(b)-new Date(a))/864e5));
+const today= () => new Date().toISOString().slice(0,10);
+
+// ══ CHARGEMENT DONNÉES DEPUIS LE SCRIPT INTÉGRÉ ══
+let DATA;
+try { DATA = JSON.parse(document.getElementById('data-script').textContent); }
+catch(e) { DATA = {sessions:[], archives:[]}; }
+let sessions = Array.isArray(DATA.sessions) ? DATA.sessions : [];
+let archives = Array.isArray(DATA.archives) ? DATA.archives : [];
+let editId = null;
+
+// ══ SAUVEGARDE : génère un nouveau fichier HTML avec données intégrées ══
+function sauvegarderFichier() {
+  // Lire le HTML complet de la page
+  const html = document.documentElement.outerHTML;
+  // Remplacer le bloc data-script par les données actuelles
+  const dataJson = JSON.stringify({sessions, archives});
+  const newHtml = html.replace(
+    /<script id="data-script" type="application\/json">[\s\S]*?<\/script>/,
+    `<script id="data-script" type="application/json">\n${dataJson}\n<\/script>`
+  );
+  const blob = new Blob([newHtml], {type: 'text/html;charset=utf-8'});
+  const a = Object.assign(document.createElement('a'), {
+    href: URL.createObjectURL(blob),
+    download: 'khatm-tracker-' + today() + '.html'
+  });
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a); URL.revokeObjectURL(a.href);
+  showToast('💾 Fichier sauvegardé ! Ouvrez-le depuis vos Téléchargements.');
+}
+
+// ══ INIT FORMULAIRE ══
+function initForm() {
+  document.getElementById('f-date').value = today();
+  const jS = document.getElementById('f-juzz');
+  for(let j=1;j<=30;j++){const o=document.createElement('option');o.value=j;o.textContent='Juzz '+j;jS.appendChild(o);}
+  const sS = document.getElementById('f-sourate');
+  SOURATES.forEach(s=>{const o=document.createElement('option');o.value=s[0];o.textContent=s[0]+'. '+s[2];sS.appendChild(o);});
+  sS.addEventListener('change', majVersets);
+  majVersets();
+  majFinJuzzInfo();
+}
+function majVersets() {
+  const sd=SI(parseInt(document.getElementById('f-sourate').value));
+  const vS=document.getElementById('f-verset'), pv=parseInt(vS.value)||1;
+  vS.innerHTML='';
+  for(let v=1;v<=sd[3];v++){const o=document.createElement('option');o.value=v;o.textContent=v;vS.appendChild(o);}
+  vS.value=Math.min(pv,sd[3]);
+}
+
+// ══ SESSIONS ══
+function saveSession() {
+  const date=document.getElementById('f-date').value; if(!date)return;
+  const juzz=parseInt(document.getElementById('f-juzz').value);
+  const sourate=parseInt(document.getElementById('f-sourate').value);
+  const verset=parseInt(document.getElementById('f-verset').value);
+  if(editId!==null){
+    sessions=sessions.map(s=>s.id===editId?{id:editId,date,juzz,sourate,verset}:s);
+    editId=null;
+    document.getElementById('form-titre').textContent='＋ Nouvelle Session';
+    document.getElementById('btn-ajouter').textContent='＋ Ajouter la session';
+    document.getElementById('btn-annuler').style.display='none';
+  } else {
+    sessions.push({id:Date.now(),date,juzz,sourate,verset});
+  }
+  render();
+  document.getElementById('fin-juzz-info').textContent = '';
+  majFinJuzzInfo();
+  showToast('✅ Session ajoutée — pensez à 💾 Sauvegarder !');
+}
+
+function cancelEdit() {
+  editId=null;
+  document.getElementById('form-titre').textContent='＋ Nouvelle Session';
+  document.getElementById('btn-ajouter').textContent='＋ Ajouter la session';
+  document.getElementById('btn-annuler').style.display='none';
+}
+
+function deleteSession(id) {
+  if(!confirm('Supprimer cette session ?'))return;
+  sessions=sessions.filter(s=>s.id!==id);
+  render();
+}
+
+function startEdit(id) {
+  const s=sessions.find(x=>x.id===id); if(!s)return;
+  editId=id;
+  document.getElementById('f-date').value=s.date;
+  document.getElementById('f-juzz').value=s.juzz;
+  document.getElementById('f-sourate').value=s.sourate;
+  majVersets();
+  document.getElementById('f-verset').value=s.verset;
+  document.getElementById('form-titre').textContent='✎ Modifier la Session';
+  document.getElementById('btn-ajouter').textContent='✔ Enregistrer';
+  document.getElementById('btn-annuler').style.display='block';
+  document.getElementById('formulaire').scrollIntoView({behavior:'smooth'});
+}
+
+// ══ RESET ══
+function demanderReset() {
+  if(!confirm('Le Khatm sera archivé et un nouveau cycle commencera. Confirmer ?'))return;
+  const sorted=[...sessions].sort((a,b)=>new Date(a.date)-new Date(b.date));
+  if(!sorted.length)return;
+  const debut=sorted[0], fin=sorted[sorted.length-1];
+  const si_d=SI(debut.sourate), si_f=SI(fin.sourate);
+  archives.push({
+    id:Date.now(), numero:archives.length+1,
+    dateDebut:debut.date, dateFin:fin.date,
+    nJours:diffJ(debut.date,fin.date)+1, nSessions:sorted.length,
+    debutLabel:`S.${debut.sourate} ${si_d?si_d[2]:'—'} V.${debut.verset} (Juzz ${debut.juzz})`,
+    finLabel:`S.${fin.sourate} ${si_f?si_f[2]:'—'} V.${fin.verset} (Juzz ${fin.juzz})`
+  });
+  sessions=[];
+  render(); renderArchives();
+  showToast('🌙 Khatm archivé ! Pensez à 💾 Sauvegarder.');
+}
+
+// ══ PARTAGER ══
+function partagerResume() {
+  const sorted=[...sessions].sort((a,b)=>new Date(a.date)-new Date(b.date));
+  let jR=30,sR=114,vR=TOTAL_VRS,pV=0,jLine='',mLine='';
+  if(sorted.length>0){
+    const last=[...sessions].sort((a,b)=>new Date(b.date)-new Date(a.date))[0];
+    const idx=SOURATES.findIndex(s=>s[0]===last.sourate);
+    sR=Math.max(0,114-(idx+1));
+    const vL=SOURATES.slice(0,idx).reduce((s,r)=>s+r[3],0)+last.verset;
+    vR=Math.max(0,TOTAL_VRS-vL); jR=Math.max(0,30-last.juzz);
+    pV=Math.round(((TOTAL_VRS-vR)/TOTAL_VRS)*100);
+    const j=diffJ(sorted[0].date,today())+1;
+    jLine=`⏳ En cours depuis ${j} jour${j>1?'s':''} (début : ${fmt(sorted[0].date)})\n`;
+    mLine=`  • Moyenne : ${(vL/j).toFixed(1)} versets/jour\n`;
+  }
+  const t=`📖 Suivi Khatm Al-Qur'an\n${jLine}\n📊 Progression :\n  • Juzz restants   : ${jR}/30\n  • Sourates rest.  : ${sR}/114\n  • Versets restants: ${vR}/6236 (${pV}% lu)\n${mLine}  • Sessions enreg. : ${sorted.length}\nبارك الله فيك 🌙`;
+  if(navigator.share) navigator.share({title:"Khatm Al-Qur'an",text:t}).catch(()=>{});
+  else if(navigator.clipboard) navigator.clipboard.writeText(t).then(()=>showToast('📋 Résumé copié !')).catch(()=>showToast('Non disponible'));
+  else { const ta=document.createElement('textarea');ta.value=t;ta.style.cssText='position:fixed;opacity:0';document.body.appendChild(ta);ta.select();try{document.execCommand('copy');showToast('📋 Résumé copié !');}catch(e){}document.body.removeChild(ta); }
+}
+
+// ══ TOAST ══
+function showToast(msg) {
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),3500);
+}
+
+// ══ RENDER ══
+function render() {
+  const sorted=[...sessions].sort((a,b)=>new Date(a.date)-new Date(b.date));
+  let jR=30,sR=114,vR=TOTAL_VRS,kFait=false;
+  if(sorted.length>0){
+    const last=[...sessions].sort((a,b)=>new Date(b.date)-new Date(a.date))[0];
+    const idx=SOURATES.findIndex(s=>s[0]===last.sourate);
+    sR=Math.max(0,114-(idx+1));
+    const vL=SOURATES.slice(0,idx).reduce((s,r)=>s+r[3],0)+last.verset;
+    vR=Math.max(0,TOTAL_VRS-vL); jR=Math.max(0,30-last.juzz);
+    kFait=(jR===0&&sR===0&&vR===0);
+  }
+  const pJ=Math.round(((30-jR)/30)*100);
+  const pS=Math.round(((114-sR)/114)*100);
+  const pV=Math.round(((TOTAL_VRS-vR)/TOTAL_VRS)*100);
+
+  const set=(id,v,d)=>{const e=document.getElementById(id);if(!e)return;e.textContent=v;e.classList.toggle('done',d);};
+  const setW=(id,p,d)=>{const e=document.getElementById(id);if(!e)return;e.style.width=p+'%';e.classList.toggle('done',d);};
+
+  set('s-juzz',jR,jR===0); set('s-srt',sR,sR===0); set('s-vrs',vR,vR===0);
+  setW('p-juzz',pJ,jR===0); setW('p-srt',pS,sR===0); setW('p-vrs',pV,vR===0);
+  set('pct-juzz',pJ+'%',jR===0); set('pct-srt',pS+'%',sR===0); set('pct-vrs',pV+'%',vR===0);
+
+  const jEl=document.getElementById('info-jours'), mEl=document.getElementById('info-moyenne');
+  if(sorted.length>0){
+    const j=diffJ(sorted[0].date,today())+1;
+    jEl.textContent=`📅 Lecture en cours depuis ${j} jour${j>1?'s':''} — début le ${fmt(sorted[0].date)}`;
+    const last=[...sessions].sort((a,b)=>new Date(b.date)-new Date(a.date))[0];
+    const idx=SOURATES.findIndex(s=>s[0]===last.sourate);
+    const vL=SOURATES.slice(0,idx).reduce((s,r)=>s+r[3],0)+last.verset;
+    const moy=(vL/j).toFixed(1);
+    const jRest=vL>0?Math.ceil(Math.max(0,TOTAL_VRS-vL)/(vL/j)):'—';
+    mEl.textContent=`📊 Moy. ${moy} versets/jour — fin estimée dans ${jRest} jour${jRest>1?'s':''}`;
+  } else { jEl.textContent='—'; mEl.textContent=''; }
+
+  document.getElementById('btn-reset').style.display=kFait?'block':'none';
+
+  const kEl=document.getElementById('khatm-msg');
+  if(kFait){
+    const debut=sorted[0],fin=sorted[sorted.length-1];
+    const j=diffJ(debut.date,fin.date)+1;
+    kEl.style.display='block';
+    kEl.innerHTML=`🌙 Khatm Al-Qur'an accompli en <strong>${j} jour${j>1?'s':''}</strong><br>Du ${fmt(debut.date)} au ${fmt(fin.date)}<br><span style="font-size:13px">بارك الله فيك ✨</span>`;
+  } else { kEl.style.display='none'; }
+
+  const vide=document.getElementById('vide-msg'), tab=document.getElementById('tableau');
+  const tbody=document.getElementById('tbody'), res=document.getElementById('resume');
+  tbody.innerHTML='';
+  if(!sorted.length){vide.style.display='block';tab.style.display='none';res.textContent='';return;}
+  vide.style.display='none'; tab.style.display='block';
+  sorted.forEach((s,i)=>{
+    const si=SI(s.sourate), nom=si?(si[2].length>9?si[2].slice(0,9)+'…':si[2]):'—';
+    const row=document.createElement('div');
+    row.className='row-data'+(i===sorted.length-1?' last-row':'');
+    row.innerHTML=`
+      <span class="col jour">J${i+1}</span>
+      <span class="col">${s.date.slice(5).replace('-','/')}</span>
+      <span class="col juzz">${s.juzz}</span>
+      <span class="col srt"><small style="color:#9a7d50">${s.sourate}.</small> ${nom}</span>
+      <span class="col verset">${s.verset}</span>
+      <span class="col act">
+        <button class="btn-edit" onclick="startEdit(${s.id})">✎</button>
+        <button class="btn-del"  onclick="deleteSession(${s.id})">✕</button>
+      </span>`;
+    tbody.appendChild(row);
+  });
+  res.textContent=sorted.length+' session'+(sorted.length>1?'s':'')+' enregistrée'+(sorted.length>1?'s':'');
+}
+
+// ══ ARCHIVES ══
+function renderArchives() {
+  const liste=document.getElementById('archives-liste'), vide=document.getElementById('archives-vide');
+  liste.innerHTML='';
+  if(!archives.length){vide.style.display='block';return;}
+  vide.style.display='none';
+  [...archives].reverse().forEach(a=>{
+    const div=document.createElement('div'); div.className='archive-item';
+    div.innerHTML=`
+      <div class="archive-num">🕌 KHATM N° ${a.numero}</div>
+      <div class="archive-line">📅 Début : <span>${fmt(a.dateDebut)}</span></div>
+      <div class="archive-line">📅 Fin   : <span>${fmt(a.dateFin)}</span></div>
+      <div class="archive-line">📖 Début : <span>${a.debutLabel}</span></div>
+      <div class="archive-line">📖 Fin   : <span>${a.finLabel}</span></div>
+      <div class="archive-line">📋 Sessions : <span>${a.nSessions}</span></div>
+      <div class="archive-duree">⏱ Durée : ${a.nJours} jour${a.nJours>1?'s':''}</div>`;
+    liste.appendChild(div);
+  });
+}
+
+// ══ DÉMARRAGE ══
+initForm();
+render();
+renderArchives();
+</script>
+
+
+</body></html>
